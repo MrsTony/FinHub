@@ -1,0 +1,86 @@
+# ============================================================================
+# FinHub Docker Compose 编排
+# 使用方式：cp .env.example .env → 填入真实值 → docker compose up -d
+# ============================================================================
+
+version: "3.9"
+
+services:
+  # ───────────────────────────────────────────────────────────
+  # MySQL 8.0 — 聚合根持久化
+  # ───────────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: finhub-mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: finhub
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ${MYSQL_DATA_DIR:-./data/mysql}:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+08:00
+
+  # ───────────────────────────────────────────────────────────
+  # Redis — 缓存层
+  # ───────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: finhub-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - ${REDIS_DATA_DIR:-./data/redis}:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    command: redis-server --save 60 1 --loglevel warning
+
+  # ───────────────────────────────────────────────────────────
+  # FinHub 应用
+  # ───────────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: finhub-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # 数据库
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/finhub?rewriteBatchedStatements=true&batchSize=1000&serverTimezone=Asia/Shanghai
+      # 安全
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      FINHUB_FINGERPRINT_SALT: ${FINHUB_FINGERPRINT_SALT}
+      BASIC_AUTH_USERNAME: ${BASIC_AUTH_USERNAME}
+      BASIC_AUTH_PASSWORD: ${BASIC_AUTH_PASSWORD}
+      # Redis
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      # AI（可选）
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://localhost:11434}
