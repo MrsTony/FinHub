@@ -1,4 +1,4 @@
-# ADR-000：DDD 战略设计决策
+# ADR-000: DDD 战略设计决策
 
 | 属性 | 值 |
 |------|-----|
@@ -48,4 +48,4 @@
 ## 参考
 
 - [README.md — 限界上下文图](../README.md)
-- [CLAUDE_CODE.md — 禁令清单](../CLAUDE_CODE.md)
+- [CLAUDE_CODE.md — 禁令清单](../claude-code/CLAUDE_CODE.md)
