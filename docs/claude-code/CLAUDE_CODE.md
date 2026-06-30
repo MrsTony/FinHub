@@ -1,7 +1,7 @@
 以下是可直接保存到项目根目录的 `CLAUDE_CODE.md` 文件，作为你与 Claude Code 协作的**强制性规范文档**。
 
 ---
-
+> 术语规范：docs/ubiquitous-language.md
 ```markdown
 # FinHub — Claude Code 协作规范 v1.0
 

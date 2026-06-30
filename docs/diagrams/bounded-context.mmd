@@ -1,0 +1,106 @@
+graph TB
+    subgraph external["🌐 外部"]
+        user["👤 用户"]
+        csv["📄 CSV / PDF"]
+        aiClient["🤖 外部 AI 客户端<br/>(Claude Desktop / Cursor)"]
+    end
+
+    subgraph aclBoundary["══════════ 防腐层（ACL）══════════"]
+        direction LR
+        acl_csv["DataSourceAdapter<br/>CSV → RawRecord"]
+        acl_doc["DocumentParser<br/>PDF/MD → RawDocument"]
+        acl_embed["EmbeddingGenerator<br/>文本 → 向量"]
+        acl_nl["NLTranslator<br/>自然语言 → ValidatedSql"]
+        acl_category["CategorySuggestionEngine<br/>交易特征 → 分类建议"]
+        acl_explain["AnomalyExplainer<br/>异常评分 → 自然语言解释"]
+        acl_mcp["McpToolDispatcher<br/>Tool 调用 → 应用层用例"]
+    end
+
+    subgraph fundflow["💰 资金流水上下文（核心域）"]
+        direction TB
+        ff_aggregate["Transaction 聚合根"]
+        ff_vo["Money · Fingerprint · EncryptedString<br/>Category · Direction · AnomalyScore"]
+        ff_service["DeduplicationService · FingerprintGenerator<br/>TransactionClassifier · AnomalyDetector"]
+        ff_event["📤 TransactionImportedEvent<br/>📤 DuplicateDetectedEvent<br/>📤 TransactionClassifiedEvent<br/>📤 AnomalyDetectedEvent"]
+        ff_repo["TransactionRepository 接口"]
+    end
+
+    subgraph knowledge["📚 本地知识库上下文（支撑域）"]
+        direction TB
+        kb_aggregate["Document 聚合根"]
+        kb_vo["KnowledgeChunk 值对象"]
+        kb_service["KnowledgeIndexer · HybridRetriever<br/>（BM25 粗排 + 向量精排 → RRF 融合）"]
+        kb_repo["DocumentRepository 接口"]
+    end
+
+    subgraph ai["🧠 AI 辅助上下文（支撑域）"]
+        direction TB
+        ai_translate["NLTranslator 实现<br/>（Spring AI 多后端）"]
+        ai_validate["SqlAstValidator<br/>（AST 白名单校验）"]
+        ai_category["分类 AI 兜底"]
+        ai_explain["异常解释生成"]
+    end
+
+    subgraph query["🔍 查询分析上下文（支撑域）"]
+        direction TB
+        q_router["QueryRouter 责任链<br/>正则匹配 → 规则路由 → AI 兜底"]
+        q_view["AggregationView 读模型"]
+    end
+
+    subgraph datagov["📊 数据治理上下文（通用域 · MVP 预留）"]
+        dg_prompt["PromptRegistry"]
+        dg_dvc["DVC · Golden Set"]
+    end
+
+    subgraph infra["⚙️ 基础设施上下文（通用域）"]
+        i_docker["Docker Compose"]
+        i_flyway["Flyway 迁移"]
+        i_security["EncryptedString · 日志脱敏 · Basic Auth"]
+    end
+
+    %% ── 外部 → ACL ──
+    csv --> acl_csv
+    csv --> acl_doc
+    aiClient --> acl_mcp
+    user --> q_router
+
+    %% ── ACL → 上下文 ──
+    acl_csv -->|"RawRecord"| ff_service
+    acl_doc -->|"RawDocument"| kb_service
+    acl_embed -->|"float[]"| kb_service
+    acl_nl -->|"ValidatedSql"| q_router
+    acl_category -->|"CategorySuggestion"| ff_service
+    acl_explain -->|"AnomalyExplanation"| ff_service
+    acl_mcp -->|"dispatch()"| q_router
+    acl_mcp -->|"dispatch()"| ff_service
+
+    %% ── AI 辅助上下文 实现 ACL ──
+    ai_translate -.->|"实现"| acl_nl
+    ai_validate -.->|"校验"| acl_nl
+    ai_category -.->|"实现"| acl_category
+    ai_explain -.->|"实现"| acl_explain
+
+    %% ── 查询分析 → 资金流水（读模型查询，不跨聚合修改）──
+    q_router -->|"只读查询"| ff_repo
+
+    %% ── 本地知识库 → 查询分析（检索增强）──
+    kb_service -->|"List&lt;KnowledgeChunk&gt;"| q_router
+
+    %% ── 领域事件（上下文间异步解耦）──
+    ff_event -.->|"订阅"| ai_category
+
+    %% ── 基础设施 支撑所有上下文 ──
+    infra -.-> fundflow
+    infra -.-> knowledge
+    infra -.-> ai
+    infra -.-> query
+    infra -.-> datagov
+
+    %% ═══ 边界高亮 ═══
+    style fundflow fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style knowledge fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style ai fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style query fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style datagov fill:#fce4ec,stroke:#c62828,stroke-width:1px,stroke-dasharray: 5 5
+    style infra fill:#eceff1,stroke:#546e7a,stroke-width:1px
+    style aclBoundary fill:#fffde7,stroke:#f9a825,stroke-width:2px,stroke-dasharray: 8 4
