@@ -17,10 +17,19 @@
     <name>FinHub</name>
     <description>个人资金数据治理中台 — DDD 跨平台资金流水聚合工具</description>
 
+    <repositories>
+        <repository>
+            <id>spring-milestones</id>
+            <name>Spring Milestones</name>
+            <url>https://repo.spring.io/milestone</url>
+            <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+    </repositories>
+
     <properties>
         <java.version>17</java.version>
         <mybatis-plus.version>3.5.7</mybatis-plus.version>
-        <jsqlparser.version>5.0.1</jsqlparser.version>
+        <jsqlparser.version>4.9</jsqlparser.version>
         <springdoc.version>2.5.0</springdoc.version>
     </properties>
 
@@ -69,19 +78,21 @@
             <artifactId>caffeine</artifactId>
         </dependency>
 
-        <!-- JSqlParser (SQL AST 校验) -->
+        <!-- JSqlParser (SQL AST 校验) — MVP 阶段暂不需要，取消注释以启用
         <dependency>
             <groupId>com.github.jsqlparser</groupId>
             <artifactId>jsqlparser</artifactId>
             <version>${jsqlparser.version}</version>
         </dependency>
+        -->
 
-        <!-- Spring AI -->
+        <!-- Spring AI — MVP 阶段暂不需要，取消注释以启用
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-spring-boot-autoconfigure</artifactId>
             <version>1.0.0-M4</version>
         </dependency>
+        -->
 
         <!-- Springdoc OpenAPI -->
         <dependency>
