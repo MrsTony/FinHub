@@ -18,7 +18,9 @@ public record Fingerprint(String hashValue, String salt) {
 
     /** 与另一个指纹匹配（仅比较 hashValue，盐值不参与） */
     public boolean matches(Fingerprint other) {
-        // TODO
-        throw new UnsupportedOperationException("TODO");
+        if (other == null) {
+            return false;
+        }
+        return this.hashValue.equals(other.hashValue);
     }
 }
