@@ -1,7 +1,7 @@
 package com.finhub.fundflow.domain.service;
 
 import com.finhub.fundflow.domain.vo.Fingerprint;
-import java.math.BigDecimal;
+import com.finhub.fundflow.domain.vo.Money;
 import java.time.LocalDateTime;
 
 /**
@@ -24,13 +24,13 @@ public interface FingerprintGenerator {
      * 生成排重指纹。
      *
      * @param counterparty 对方户名（明文，标准化后哈希）
-     * @param amount       金额（精度已强制）
+     * @param money        交易金额（含币种，精度已由 Money 构造器强制）
      * @param transTime    交易时间（截断到分钟）
      * @param remark       备注（可能为 null）
      * @param salt         盐值（32 字节以上，环境变量注入）
      * @return 指纹值对象（含 hashValue 和 salt）
      * @throws IllegalArgumentException 若参数非法
      */
-    Fingerprint generate(String counterparty, BigDecimal amount,
+    Fingerprint generate(String counterparty, Money money,
                          LocalDateTime transTime, String remark, String salt);
 }
