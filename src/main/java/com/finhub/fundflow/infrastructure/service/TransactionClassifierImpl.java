@@ -7,6 +7,7 @@ import com.finhub.fundflow.domain.vo.Category;
 import com.finhub.fundflow.domain.vo.CategorySuggestion;
 import com.finhub.fundflow.domain.vo.Direction;
 import com.finhub.fundflow.domain.vo.EncryptedString;
+import io.swagger.v3.oas.annotations.servers.Server;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
@@ -19,6 +20,7 @@ import java.util.Map;
  * <p>分类优先级：商户关键词规则匹配 → AI 建议（预留）</p>
  */
 @Slf4j
+@Server
 public class TransactionClassifierImpl implements TransactionClassifier {
 
     /** 默认加密密钥（MVP 阶段，生产环境应通过构造器注入） */

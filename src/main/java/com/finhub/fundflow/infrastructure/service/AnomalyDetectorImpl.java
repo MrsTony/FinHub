@@ -4,6 +4,7 @@ import com.finhub.fundflow.domain.aggregate.Transaction;
 import com.finhub.fundflow.domain.service.AnomalyDetector;
 import com.finhub.fundflow.domain.vo.AnomalyScore;
 import com.finhub.fundflow.domain.vo.Category;
+import io.swagger.v3.oas.annotations.servers.Server;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
@@ -30,6 +31,7 @@ import java.util.stream.Collectors;
  * </ul>
  */
 @Slf4j
+@Server
 public class AnomalyDetectorImpl implements AnomalyDetector {
 
     /** 金额异常-尖峰阈值 */
