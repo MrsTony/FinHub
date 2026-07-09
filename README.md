@@ -165,4 +165,33 @@ graph TB
 
 ### 3. MCP Dispatcher 归属：基础设施协议适配
 
-`McpToolDispatcher` 放在 ACL 大框中是因为它直接面向外部 AI 客户端，在边界视图中属于最外层。但物理上它位于 `infra/mcp/` 包，本质是**基础设施层对 MCP 协议的适配**（类似 HTTP Controller 对 REST 的适配），通过调用应用层服务完成请求路由，不包含业务逻辑。```
+`McpToolDispatcher` 放在 ACL 大框中是因为它直接面向外部 AI 客户端，在边界视图中属于最外层。但物理上它位于 `infra/mcp/` 包，本质是**基础设施层对 MCP 协议的适配**（类似 HTTP Controller 对 REST 的适配），通过调用应用层服务完成请求路由，不包含业务逻辑。
+
+---
+
+## 开发进度
+
+### Day 1 — 项目骨架 + ADR
+- Maven 多模块骨架、Docker Compose（MySQL + Redis）、Flyway 迁移目录
+- 6 篇 ADR（Money 精度、ACL 防腐层、AI 校验、Repository 模式、安全基线、Docker 容器化）
+- 统一语言词汇表、Claude Code 协作规范
+
+### Day 2 — 核心域值对象 + Transaction 聚合根
+- **值对象**：`Money`（精度截断/币种白名单/日志脱敏）、`Category`（收支兼容性校验）、`Direction`、`Fingerprint`（SHA256 + 盐值）、`EncryptedString`（AES-256-CBC 加解密）、`AnomalyScore`、`CategorySuggestion`
+- **聚合根**：`Transaction`（`createFrom` 工厂方法校验 6 条不变量 + `markClassified`/`markAnomaly` 状态变更 + 领域事件收集）
+- **领域事件**：`TransactionImportedEvent`、`DuplicateDetectedEvent`、`TransactionClassifiedEvent`、`AnomalyDetectedEvent`
+- **测试**：98 个测试覆盖全部值对象与聚合根
+
+### Day 3 — 领域服务 + 防腐层 + 应用层编排
+- **领域服务接口**（Javadoc 完整）：`DeduplicationService`（三重防重）、`TransactionClassifier`（规则→历史→AI）、`AnomalyDetector`（金额/重复/订阅异常）、`FingerprintGenerator`（结构化哈希五步算法）
+- **ACL 防腐层**：`DataSourceAdapter` + `RawRecord`（字段级注释，明确可空语义）
+- **应用层**：`IngestionAppService` 空壳骨架（构造器注入 + `importFile()` + `ImportResult` DTO）
+- **基础设施实现**：`DeduplicationServiceImpl`（external_id → fingerprint → Caffeine 缓存三重防重链，批次内去重 + DB 查重，日志脱敏输出）
+- **测试**：`DeduplicationServiceTest` 契约测试（abstract）+ `DeduplicationServiceImplTest` 实现测试（Mock Repository + 真实 Caffeine）
+
+### Day 4（待做）— 参考 `docs/superpowers/specs/day03执行计划.md`
+- `FingerprintGeneratorImpl`：SHA256 结构化哈希实现
+- `TransactionClassifierImpl`：规则引擎（商户关键词映射）
+- `AnomalyDetectorImpl`：统计规则异常检测（MVP 版）
+- `AlipayCSVAdapter` / `WechatCSVAdapter`：防腐层实现
+- 应用层 `importFile()` 编排流程实现
