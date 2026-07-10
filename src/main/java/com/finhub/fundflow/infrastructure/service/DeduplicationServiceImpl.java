@@ -8,6 +8,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import io.swagger.v3.oas.annotations.servers.Server;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -30,7 +31,7 @@ import java.util.Set;
  */
 @Slf4j
 @RequiredArgsConstructor
-@Server
+@Service
 public class DeduplicationServiceImpl implements DeduplicationService {
 
     private final TransactionRepository repository;

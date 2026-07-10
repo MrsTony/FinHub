@@ -3,6 +3,7 @@ package com.finhub.fundflow.infrastructure.adapter;
 import com.finhub.fundflow.acl.DataSourceAdapter;
 import com.finhub.fundflow.acl.RawRecord;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -34,6 +35,7 @@ import java.util.regex.Pattern;
  * </ul>
  */
 @Slf4j
+@Service
 public class WechatCSVAdapter implements DataSourceAdapter {
 
     /** UTF-8 BOM */

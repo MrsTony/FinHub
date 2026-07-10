@@ -5,6 +5,7 @@ import com.finhub.fundflow.domain.vo.Fingerprint;
 import com.finhub.fundflow.domain.vo.Money;
 import io.swagger.v3.oas.annotations.servers.Server;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -19,7 +20,7 @@ import java.util.Objects;
  * <p>算法：SHA-256(金额截断精度 + "|" + 时间截断到分钟 + "|" + 对方户名标准化 + "|" + 备注空值占位 + "|" + 盐值)</p>
  */
 @Slf4j
-@Server
+@Service
 public class FingerprintGeneratorImpl implements FingerprintGenerator {
 
     /** 备注空值占位符 */

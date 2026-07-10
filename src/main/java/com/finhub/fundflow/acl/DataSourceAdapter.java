@@ -13,7 +13,6 @@ import java.util.List;
  *
  * <p>实现类：AlipayCSVAdapter（2024 新版）、WechatCSVAdapter（预留）、BankCSVAdapter（预留）。</p>
  */
-@Service
 public interface DataSourceAdapter {
 
     /**

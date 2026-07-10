@@ -3,6 +3,7 @@ package com.finhub.fundflow.infrastructure.adapter;
 import com.finhub.fundflow.acl.DataSourceAdapter;
 import com.finhub.fundflow.acl.RawRecord;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -35,6 +36,7 @@ import java.util.regex.Pattern;
  * </ul>
  */
 @Slf4j
+@Service
 public class AlipayCSVAdapter implements DataSourceAdapter {
 
     /** 真实表头（13 列，末尾尾随逗号） */
