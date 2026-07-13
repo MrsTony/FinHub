@@ -189,9 +189,21 @@ graph TB
 - **基础设施实现**：`DeduplicationServiceImpl`（external_id → fingerprint → Caffeine 缓存三重防重链，批次内去重 + DB 查重，日志脱敏输出）
 - **测试**：`DeduplicationServiceTest` 契约测试（abstract）+ `DeduplicationServiceImplTest` 实现测试（Mock Repository + 真实 Caffeine）
 
-### Day 4（待做）— 参考 `docs/superpowers/specs/day03执行计划.md`
-- `FingerprintGeneratorImpl`：SHA256 结构化哈希实现
-- `TransactionClassifierImpl`：规则引擎（商户关键词映射）
-- `AnomalyDetectorImpl`：统计规则异常检测（MVP 版）
-- `AlipayCSVAdapter` / `WechatCSVAdapter`：防腐层实现
-- 应用层 `importFile()` 编排流程实现
+### Day 4 - 领域服务实现 + CSV 防腐层适配器
+- `FingerprintGeneratorImpl`：SHA256 结构化哈希（金额+时间+对方+备注+盐值）
+- `TransactionClassifierImpl`：规则引擎（商户关键词映射，方向兼容性校验，预留 AI 接口）
+- `AnomalyDetectorImpl`：金额异常检测（3 倍均值 SPIKE / 1.5 倍 HIGH）
+- `AlipayCSVAdapter` / `WechatCSVAdapter`：2024 新版账单防腐层（编码自动识别、异常行容错跳过）
+- `TransactionRepositoryImpl`：空壳骨架（7 方法待 Day5 实现）
+- **测试**：4 个 Impl 测试 + 2 个 CSV 适配器测试 + 真实账单集成测试
+
+### Day 5（进行中）- 参考 `docs/superpowers/specs/day05.md`
+> 主题：组装端到端导入流水线 + 闭环。全程 TDD（测试契约先行 -> RED -> GREEN -> 全量回归）。
+
+- [x] **第一步**：VO 决策方法补全 -- `AnomalyScore.isAlert()`（score > 0.7）、`CategorySuggestion.isAdoptable()`（confidence > 0.8 && source ∈ {RULE, AI}），严格大于语义 + 来源大小写敏感契约
+- [ ] 第二步：`TransactionRepositoryImpl` 7 方法（MyBatis-Plus + Mapper + PO + Converter）
+- [ ] 第三步：配置补全（yml salt/key + `CacheConfig` Caffeine Bean + `@MapperScan`）
+- [ ] 第四步：`CompositeDataSourceAdapter` 多数据源路由
+- [ ] 第五步：`IngestionAppService.importFile()` 9 步编排
+- [ ] 第六步：`IngestionController` REST 入口
+- [ ] 第七步：端到端集成测试 + 全量回归闸门

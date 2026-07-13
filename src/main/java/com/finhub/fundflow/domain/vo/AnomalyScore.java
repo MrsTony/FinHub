@@ -17,9 +17,11 @@ public record AnomalyScore(BigDecimal score, String reasonCode) {
         }
     }
 
+    /** 告警阈值：score 严格大于此值视为高异常 */
+    private static final BigDecimal ALERT_THRESHOLD = new BigDecimal("0.7");
+
     /** score &gt; 0.7 视为高异常 */
     public boolean isAlert() {
-        // TODO
-        throw new UnsupportedOperationException("TODO");
+        return score.compareTo(ALERT_THRESHOLD) > 0;
     }
 }

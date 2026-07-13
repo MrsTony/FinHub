@@ -18,9 +18,15 @@ public record CategorySuggestion(Category category, BigDecimal confidence, Strin
         }
     }
 
+    /** 自动采纳阈值：confidence 严格大于此值方可采纳 */
+    private static final BigDecimal ADOPT_THRESHOLD = new BigDecimal("0.8");
+
+    /** 允许自动采纳的来源白名单 */
+    private static final java.util.Set<String> ADOPTABLE_SOURCES = java.util.Set.of("RULE", "AI");
+
     /** confidence &gt; 0.8 且来源为 RULE 或 AI 时允许自动采纳 */
     public boolean isAdoptable() {
-        // TODO
-        throw new UnsupportedOperationException("TODO");
+        return confidence.compareTo(ADOPT_THRESHOLD) > 0
+                && ADOPTABLE_SOURCES.contains(source);
     }
 }
