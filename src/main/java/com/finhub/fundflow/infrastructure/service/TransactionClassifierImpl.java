@@ -7,8 +7,9 @@ import com.finhub.fundflow.domain.vo.Category;
 import com.finhub.fundflow.domain.vo.CategorySuggestion;
 import com.finhub.fundflow.domain.vo.Direction;
 import com.finhub.fundflow.domain.vo.EncryptedString;
-import io.swagger.v3.oas.annotations.servers.Server;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -61,13 +62,14 @@ public class TransactionClassifierImpl implements TransactionClassifier {
         MERCHANT_KEYWORDS.put("奖金", Category.INCOME);
     }
 
-    /** MVP 无参构造器（测试兼容），使用默认密钥 */
+    /** MVP 无参构造器（测试兼容），使用默认密钥；生产环境 Spring 不会使用此构造器 */
     public TransactionClassifierImpl() {
         this(DEFAULT_ENCRYPTION_KEY, null);
     }
 
-    /** 生产环境构造器（密钥注入） */
-    public TransactionClassifierImpl(String encryptionKey) {
+    /** 生产环境构造器：加密密钥由配置注入，与 IngestionAppService 加密用的密钥一致（E2E 闭环） */
+    @Autowired
+    public TransactionClassifierImpl(@Value("${finhub.encryption.key}") String encryptionKey) {
         this(encryptionKey, null);
     }
 

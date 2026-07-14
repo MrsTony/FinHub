@@ -3,7 +3,6 @@ package com.finhub.fundflow.infrastructure.service;
 import com.finhub.fundflow.domain.service.FingerprintGenerator;
 import com.finhub.fundflow.domain.vo.Fingerprint;
 import com.finhub.fundflow.domain.vo.Money;
-import io.swagger.v3.oas.annotations.servers.Server;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

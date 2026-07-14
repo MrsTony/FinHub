@@ -197,13 +197,16 @@ graph TB
 - `TransactionRepositoryImpl`：空壳骨架（7 方法待 Day5 实现）
 - **测试**：4 个 Impl 测试 + 2 个 CSV 适配器测试 + 真实账单集成测试
 
-### Day 5（进行中）- 参考 `docs/superpowers/specs/day05.md`
+### Day 5 - 组装端到端导入流水线 + 闭环 ✅
 > 主题：组装端到端导入流水线 + 闭环。全程 TDD（测试契约先行 -> RED -> GREEN -> 全量回归）。
+> 参考 `docs/superpowers/specs/day05.md`，最终 221 个测试全绿（含真实账单 E2E）。
 
 - [x] **第一步**：VO 决策方法补全 -- `AnomalyScore.isAlert()`（score > 0.7）、`CategorySuggestion.isAdoptable()`（confidence > 0.8 && source ∈ {RULE, AI}），严格大于语义 + 来源大小写敏感契约
-- [ ] 第二步：`TransactionRepositoryImpl` 7 方法（MyBatis-Plus + Mapper + PO + Converter）
-- [ ] 第三步：配置补全（yml salt/key + `CacheConfig` Caffeine Bean + `@MapperScan`）
-- [ ] 第四步：`CompositeDataSourceAdapter` 多数据源路由
-- [ ] 第五步：`IngestionAppService.importFile()` 9 步编排
-- [ ] 第六步：`IngestionController` REST 入口
-- [ ] 第七步：端到端集成测试 + 全量回归闸门
+- [x] **第二步**：`TransactionRepositoryImpl` 7 方法（findById/findByExternalId/findByFingerprint/findByCategoryAndTimeRange/save/saveBatch/count）+ `TransactionMapper` + `TransactionPO` + `TransactionConverter`，远程 MySQL 集成测 + `@Transactional` 回滚
+- [x] **第三步**：配置补全 -- `application.yml` 补 `finhub.fingerprint.salt`/`finhub.encryption.key`（32 字节默认值）、`BASIC_AUTH_PASSWORD` 默认空值、新增 `lombok.config`（`copyableAnnotations += @Value` 解决 `@RequiredArgsConstructor`+`@Value` 注入）、`CacheConfig` Caffeine Bean、`FinHubApplication` 加 `@MapperScan`
+- [x] **第四步**：`CompositeDataSourceAdapter`（`@Primary`）按文件名路由 alipay/支付宝 -> AlipayCSVAdapter、wechat/微信 -> WechatCSVAdapter，解决 `NoUniqueBeanDefinitionException`
+- [x] **第五步**：`IngestionAppService.importFile()` 9 步编排（adapt -> 加密构建 Transaction 容错 -> deduplicate -> classify/markClassified -> detect/markAnomaly -> saveBatch -> 发布事件 -> ImportResult），补 `AnomalyDetector` 依赖、修正 `TransactionClassifierImpl` 用配置密钥（E2E 加解密闭环）
+- [x] **第六步**：`IngestionController`（`POST /api/transactions/import`）+ `GlobalExceptionHandler`（IAE->400 / 其他->500）+ Knife4j 注解；`@SpringBootTest`+MockMvc 测试覆盖 200/400/401/500
+- [x] **第七步**：`IngestionEndToEndTest` 端到端 -- 合成 CSV（运行期唯一 externalId）+ 真实支付宝账单全链路，验证路由/编排/加解密/分类/去重/落库/查回闭环；`mvn test` 221 全绿
+
+**已知缺口（待 Day6+）**：聚合根 id 不回填（事件 transactionId 为 null）、`anomaly_reason_code` 列未建（Converter 用哨兵占位）、领域事件监听器未实现。

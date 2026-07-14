@@ -20,7 +20,7 @@ mybatis-plus:
       logic-not-delete-value: 0
   configuration:
     map-underscore-to-camel-case: true
-    default-enum-type-handler: org.apache.ibatis.type.EnumOrdinalTypeHandler
+    default-enum-type-handler: org.apache.ibatis.type.EnumTypeHandler
 
 server:
   port: 8080
@@ -28,7 +28,14 @@ server:
 finhub:
   auth:
     username: ${BASIC_AUTH_USERNAME:admin}
-    password: ${BASIC_AUTH_PASSWORD}
+    password: ${BASIC_AUTH_PASSWORD:}
+  fingerprint:
+    # 排重指纹盐值，每实例独立；开发默认值仅本地调试，生产必须通过环境变量注入
+    salt: ${FINHUB_FINGERPRINT_SALT:dev-salt-please-override}
+  encryption:
+    # AES-256 密钥，必须恰好 32 字节（EncryptedString.validateKeyLength 强校验）
+    # 开发默认值为 32 字节十六进制占位串，生产必须通过环境变量注入
+    key: ${FINHUB_ENCRYPTION_KEY:0123456789abcdef0123456789abcdef}
 
 logging:
   level:
