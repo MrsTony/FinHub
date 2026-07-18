@@ -14,8 +14,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class StartupBannerTest {
 
     @Test
-    @DisplayName("非 prod：面板应含本地/局域网 doc.html 链接、API 端点、凭据、应用名")
-    void shouldContainLinksAndCredentialsWhenNotProd() {
+    @DisplayName("非 prod：面板应含本地/局域网 doc.html 链接、API 端点、免密标识、应用名")
+    void shouldContainLinksAndNoAuthInfoWhenNotProd() {
         String panel = StartupBanner.buildPanel(
                 false, "FinHub", "0.1.0", 8080, "", "192.168.1.100");
 
@@ -25,7 +25,9 @@ class StartupBannerTest {
                 .contains("http://localhost:8080/doc.html")
                 .contains("http://192.168.1.100:8080/doc.html")
                 .contains("/api/transactions/import")
-                .contains("admin/dev-pass");
+                .contains("API 调试")
+                .contains("免密")
+                .doesNotContain("admin/dev-pass");
     }
 
     @Test

@@ -80,7 +80,7 @@ public class StartupBanner implements ApplicationRunner {
                   API 文档     : %s
                   局域网文档   : %s
                   API 端点     : %s
-                  Basic Auth  : admin/dev-pass
+                  API 调试  : 免密
                 ===================================================""".formatted(
                 appName, version, local, lan, api);
     }
