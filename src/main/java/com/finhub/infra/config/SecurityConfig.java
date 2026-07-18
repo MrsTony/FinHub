@@ -56,6 +56,7 @@ public class SecurityConfig {
                 auth.requestMatchers("/actuator/health").permitAll();  // 健康检查免认证
                 if (!isProd()) {
                     auth.requestMatchers(DOC_PATHS).permitAll();        // 非 prod 放行文档页
+                    auth.requestMatchers("/api/**").permitAll();       // dev 免密调试
                 }
                 auth.anyRequest().authenticated();
             })

@@ -6,16 +6,18 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * 非 prod 环境 Knife4j 文档访问契约（默认 profile）。
  *
- * <p>验证：/doc.html 免认证可访问（非 4xx）；/api/** 真实接口仍需 Basic Auth。</p>
+ * <p>验证：/doc.html 与 /api/** 均免认证可访问（非 prod 放行）。</p>
  */
 @Tag("integration")
 @SpringBootTest
@@ -38,9 +40,10 @@ class Knife4jDevAccessTest {
     }
 
     @Test
-    @DisplayName("非 prod：/api/** 仍需 Basic Auth（未认证返回 401）")
-    void apiShouldStillRequireAuthInDev() throws Exception {
-        mockMvc.perform(get("/api/transactions/import"))
-                .andExpect(status().isUnauthorized());
+    @DisplayName("非 prod：/api/** 免认证可达（空文件 POST 返回 400 而非 401，证明 Security 放行）")
+    void apiShouldBeAccessibleWithoutAuthInDev() throws Exception {
+        MockMultipartFile empty = new MockMultipartFile("file", "alipay.csv", "text/csv", new byte[0]);
+        mockMvc.perform(multipart("/api/transactions/import").file(empty))
+                .andExpect(status().isBadRequest());  // 空文件 -> 控制器 IAE -> 400，未走 401
     }
 }

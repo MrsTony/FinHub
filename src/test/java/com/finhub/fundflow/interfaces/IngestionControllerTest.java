@@ -24,7 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * <p>采用全上下文而非 {@code @WebMvcTest}：因 {@code @MapperScan} 在 Web 切片下缺少 SqlSessionFactory 而无法装配。
  * Basic Auth 复用 {@code SecurityConfig}（admin/dev-pass，未注入密码时的兜底值）。</p>
  *
- * <p>验证：200 上传成功返回计数、400 文件空/文件名空/AppService 抛 IAE、401 未认证、500 意外异常。</p>
+ * <p>验证：200 上传成功返回计数、400 文件空/文件名空/AppService 抛 IAE、500 意外异常。</p>
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -81,15 +81,6 @@ class IngestionControllerTest {
         mockMvc.perform(multipart("/api/transactions/import").file(file).with(httpBasic(USERNAME, PASSWORD)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("无法识别数据源: bad.csv"));
-    }
-
-    @Test
-    @DisplayName("未认证请求应返回 401")
-    void shouldReturn401WithoutAuth() throws Exception {
-        MockMultipartFile file = csvFile("alipay.csv", "content");
-
-        mockMvc.perform(multipart("/api/transactions/import").file(file))
-                .andExpect(status().isUnauthorized());
     }
 
     @Test
