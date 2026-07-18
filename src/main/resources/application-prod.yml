@@ -1,0 +1,9 @@
+# 生产环境配置：profile=prod 时加载
+# 生产严禁暴露接口文档，双重禁用 Knife4j + springdoc
+knife4j:
+  production: true              # Knife4j 原生生产模式，屏蔽所有 Knife4j 资源接口
+springdoc:
+  api-docs:
+    enabled: false              # 关闭原生 OpenAPI JSON（/v3/api-docs 返回 404）
+  swagger-ui:
+    enabled: false              # 关闭 swagger-ui
