@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.Map;
 
@@ -19,6 +20,13 @@ import java.util.Map;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    /** 请求的资源不存在（如 springdoc 禁用后 /v3/api-docs 等）：返回 404 */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, String>> handleNoResource(NoResourceFoundException e) {
+        log.warn("请求的资源不存在: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "资源不存在"));
+    }
 
     /** 请求参数非法或数据源无法识别：返回 400 + 原始错误消息 */
     @ExceptionHandler(IllegalArgumentException.class)
