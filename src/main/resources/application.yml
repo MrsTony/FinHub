@@ -39,4 +39,4 @@ finhub:
 
 logging:
   level:
-    com.finhub: DEBUG
+    com.finhub: INFO
