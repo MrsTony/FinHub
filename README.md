@@ -210,3 +210,11 @@ graph TB
 - [x] **第七步**：`IngestionEndToEndTest` 端到端 -- 合成 CSV（运行期唯一 externalId）+ 真实支付宝账单全链路，验证路由/编排/加解密/分类/去重/落库/查回闭环；`mvn test` 221 全绿
 
 **已知缺口（待 Day6+）**：聚合根 id 不回填（事件 transactionId 为 null）、`anomaly_reason_code` 列未建（Converter 用哨兵占位）、领域事件监听器未实现。
+
+### Knife4j 集成 + 环境隔离 + 启动 Banner
+- 引入 Knife4j 4.5.0（基于 springdoc 2.5.0 增强，`/doc.html` 文档 UI）
+- profile `prod` 双重隔离：`application-prod.yml` 禁用 Knife4j/springdoc + Security 层 prod 不放行文档路径（未认证 `/doc.html` 返回 401；`/v3/api-docs` springdoc 禁用返回 404，文档数据不泄露）
+- 非 prod 文档页 permitAll，`/api/**` 仍 Basic Auth（Knife4j Authorize 配置 admin/dev-pass 调试）
+- `OpenApiConfig`（`@Profile("!prod")`）提供 BasicAuth securityScheme
+- `StartupBanner`（`ApplicationRunner`）启动打印本地+局域网 doc.html 链接 + 凭据，prod 仅一行
+- 新增 9 个测试（Knife4jDevAccessTest 2 + Knife4jProdDisableTest 2 + OpenApiConfigTest 1 + StartupBannerTest 4），`mvn test` 共 230 全绿
