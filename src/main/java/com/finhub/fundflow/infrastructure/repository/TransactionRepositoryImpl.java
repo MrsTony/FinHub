@@ -17,7 +17,7 @@ import java.util.Optional;
  * {@link TransactionRepository} 的 MyBatis-Plus 实现。
  *
  * <p>领域层只依赖接口，基础设施层负责持久化细节：PO 装配、Mapper 调用、领域 ↔ PO 转换。
- * 不回填聚合根 id（MVP 决策，详见 {@link TransactionConverter} 已知缺口）。</p>
+ * insert 后回填聚合根自增 id（{@link Transaction#assignPersistedId(Long)}），同时丰富待发领域事件。</p>
  */
 @Repository
 @RequiredArgsConstructor
@@ -71,7 +71,7 @@ public class TransactionRepositoryImpl implements TransactionRepository {
     public void save(Transaction transaction) {
         TransactionPO po = TransactionConverter.toPO(transaction);
         transactionMapper.insert(po);
-        // MVP 决策：不回填 PO 自增 id 到聚合根（Transaction 无 setId）
+        transaction.assignPersistedId(po.getId());   // 回填自增 id + 丰富待发事件
     }
 
     @Override
@@ -80,9 +80,11 @@ public class TransactionRepositoryImpl implements TransactionRepository {
             return;
         }
         for (Transaction transaction : transactions) {
-            transactionMapper.insert(TransactionConverter.toPO(transaction));
+            TransactionPO po = TransactionConverter.toPO(transaction);
+            transactionMapper.insert(po);
+            transaction.assignPersistedId(po.getId());   // 回填自增 id + 丰富待发事件
         }
-        // MVP 逐条插入；Day6+ 可切换 SqlSession BATCH 模式利用 rewriteBatchedStatements
+        // MVP 逐条插入；Day7+ 可切换 SqlSession BATCH 模式利用 rewriteBatchedStatements
     }
 
     @Override

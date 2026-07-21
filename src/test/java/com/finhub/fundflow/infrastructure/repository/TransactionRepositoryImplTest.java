@@ -151,6 +151,34 @@ class TransactionRepositoryImplTest {
     }
 
     // =========================================================================
+    // save/saveBatch 回填聚合根 id（insert 后回填）
+    // =========================================================================
+
+    @Test
+    @DisplayName("save 后应回填聚合根 id")
+    void shouldBackfillIdAfterSave() {
+        Transaction tx = buildTransaction("ext-idback-001", "fp-idback-001");
+        assertThat(tx.getId()).isNull();
+
+        repository.save(tx);
+
+        assertThat(tx.getId()).isNotNull();
+        assertThat(tx.getId()).isPositive();
+    }
+
+    @Test
+    @DisplayName("saveBatch 后每条聚合根 id 均应回填")
+    void shouldBackfillIdAfterSaveBatch() {
+        List<Transaction> batch = List.of(
+                buildTransaction("ext-idback-002", "fp-idback-002"),
+                buildTransaction("ext-idback-003", "fp-idback-003"));
+
+        repository.saveBatch(batch);
+
+        assertThat(batch).allMatch(tx -> tx.getId() != null && tx.getId() > 0);
+    }
+
+    // =========================================================================
     // 辅助构造
     // =========================================================================
 
