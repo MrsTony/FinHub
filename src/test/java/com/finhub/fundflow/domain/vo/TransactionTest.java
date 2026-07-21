@@ -1,6 +1,8 @@
 package com.finhub.fundflow.domain.vo;
 
 import com.finhub.fundflow.domain.aggregate.Transaction;
+import com.finhub.fundflow.domain.event.AnomalyDetectedEvent;
+import com.finhub.fundflow.domain.event.TransactionClassifiedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
@@ -180,5 +182,62 @@ public class TransactionTest {
 
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> tx.markAnomaly(null));
+    }
+
+    @Test
+    @DisplayName("assignPersistedId 应回填 id 并丰富已注册的分类事件 transactionId")
+    void shouldSetIdAndEnrichClassifiedEvent() {
+        Transaction tx = Transaction.createFrom("ext-id-1", money("100"), Direction.OUT,
+                Category.UNCLASSIFIED, LocalDateTime.now(), encrypted("美团"), encrypted("饭"),
+                fingerprint("fp"), "ALIPAY");
+        tx.markClassified(Category.FOOD, "RULE");   // 注册事件时 id 仍为 null
+        assertThat(tx.getId()).isNull();
+
+        tx.assignPersistedId(42L);
+
+        assertThat(tx.getId()).isEqualTo(42L);
+        assertThat(tx.getDomainEvents()).hasSize(1);
+        Object event = tx.getDomainEvents().get(0);
+        assertThat(event).isInstanceOf(TransactionClassifiedEvent.class);
+        assertThat(((TransactionClassifiedEvent) event).transactionId()).isEqualTo(42L);
+        assertThat(((TransactionClassifiedEvent) event).category()).isEqualTo(Category.FOOD);
+    }
+
+    @Test
+    @DisplayName("assignPersistedId 应回填 id 并丰富已注册的异常事件 transactionId")
+    void shouldSetIdAndEnrichAnomalyEvent() {
+        Transaction tx = Transaction.createFrom("ext-id-2", money("99999"), Direction.OUT,
+                Category.SHOPPING, LocalDateTime.now(), encrypted("商户"), encrypted("大额"),
+                fingerprint("fp2"), "ALIPAY");
+        tx.markAnomaly(new AnomalyScore(new BigDecimal("0.95"), "AMOUNT_SPIKE"));
+
+        tx.assignPersistedId(7L);
+
+        assertThat(tx.getId()).isEqualTo(7L);
+        Object event = tx.getDomainEvents().get(0);
+        assertThat(event).isInstanceOf(AnomalyDetectedEvent.class);
+        assertThat(((AnomalyDetectedEvent) event).transactionId()).isEqualTo(7L);
+    }
+
+    @Test
+    @DisplayName("assignPersistedId 重复调用应抛 IllegalStateException（防重复赋值）")
+    void shouldThrowWhenIdAlreadyAssigned() {
+        Transaction tx = Transaction.createFrom("ext-id-3", money("100"), Direction.OUT,
+                Category.FOOD, LocalDateTime.now(), encrypted("测试"), encrypted("测试"),
+                fingerprint("fp"), "ALIPAY");
+        tx.assignPersistedId(1L);
+        assertThatIllegalStateException()
+                .isThrownBy(() -> tx.assignPersistedId(2L))
+                .withMessageContaining("id 已回填");
+    }
+
+    @Test
+    @DisplayName("assignPersistedId 为 null 应抛 NullPointerException")
+    void shouldRejectNullId() {
+        Transaction tx = Transaction.createFrom("ext-id-4", money("100"), Direction.OUT,
+                Category.FOOD, LocalDateTime.now(), encrypted("测试"), encrypted("测试"),
+                fingerprint("fp"), "ALIPAY");
+        assertThatNullPointerException()
+                .isThrownBy(() -> tx.assignPersistedId(null));
     }
 }

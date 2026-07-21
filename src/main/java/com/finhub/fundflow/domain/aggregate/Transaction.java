@@ -119,6 +119,34 @@ public class Transaction {
         registerEvent(new AnomalyDetectedEvent(this.id, score));
     }
 
+    /**
+     * 回填持久化主键（由 Repository 在 insert 后调用一次）。
+     *
+     * <p>同时用带 id 的实例替换已注册的领域事件（事件为不可变 record，注册时 id 尚为 null），
+     * 使发布出去的事件携带真实 transactionId。重复调用抛 {@link IllegalStateException}。</p>
+     *
+     * @param id 数据库自增主键，不可为 null
+     */
+    public void assignPersistedId(Long id) {
+        Objects.requireNonNull(id, "id 不能为空");
+        if (this.id != null) {
+            throw new IllegalStateException("id 已回填，不可重复赋值");
+        }
+        this.id = id;
+        List<Object> enriched = new ArrayList<>(domainEvents.size());
+        for (Object e : domainEvents) {
+            if (e instanceof TransactionClassifiedEvent tce) {
+                enriched.add(new TransactionClassifiedEvent(id, tce.category(), tce.source()));
+            } else if (e instanceof AnomalyDetectedEvent ade) {
+                enriched.add(new AnomalyDetectedEvent(id, ade.score()));
+            } else {
+                enriched.add(e);
+            }
+        }
+        domainEvents.clear();
+        domainEvents.addAll(enriched);
+    }
+
     /** 领域事件列表（只读） */
     public List<Object> getDomainEvents() {
         return Collections.unmodifiableList(domainEvents);
