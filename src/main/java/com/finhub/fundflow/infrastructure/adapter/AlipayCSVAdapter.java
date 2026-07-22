@@ -45,15 +45,17 @@ public class AlipayCSVAdapter implements DataSourceAdapter {
 
     /** 真实字段索引 */
     private static final int IDX_TRANS_TIME = 0;
+    private static final int IDX_CATEGORY = 1;       // 交易分类
     private static final int IDX_COUNTERPARTY = 2;
     private static final int IDX_PRODUCT = 4;
     private static final int IDX_DIRECTION = 5;
     private static final int IDX_AMOUNT = 6;
+    private static final int IDX_STATUS = 8;         // 交易状态
     private static final int IDX_EXTERNAL_ID = 9;
     private static final int IDX_REMARK = 11;
 
     /** 期望最小列数（含尾随逗号产生的空尾列） */
-    private static final int MIN_FIELD_COUNT = 12;
+    private static final int MIN_FIELD_COUNT = 13;  // 13 列含尾随逗号
 
     /** 时间格式 */
     private static final DateTimeFormatter TIME_FORMATTER =
@@ -154,7 +156,7 @@ public class AlipayCSVAdapter implements DataSourceAdapter {
 
         LocalDateTime transTime = parseTime(fields[IDX_TRANS_TIME], lineNo);
         BigDecimal amount = parseAmount(fields[IDX_AMOUNT], lineNo);
-        String direction = parseDirection(fields[IDX_DIRECTION], lineNo);
+        String direction = parseDirection(fields[IDX_DIRECTION], lineNo, fields[IDX_CATEGORY], fields[IDX_STATUS]);
 
         if (transTime == null || amount == null || direction == null) {
             return;
@@ -194,19 +196,52 @@ public class AlipayCSVAdapter implements DataSourceAdapter {
         }
     }
 
-    /** 校验方向：仅保留合法值（收入/支出/IN/OUT），非法返回 null */
-    private String parseDirection(String raw, int lineNo) {
+    /** 校验方向：
+     * - 收入/支出/IN/OUT -> 正常返回
+     * - 不计收支 -> 根据交易分类/交易状态判断：
+     *   - 退款 -> 收入(IN)
+     *   - 交易关闭 -> 跳过(null)
+     *   - 信用借还 -> 跳过(null)
+     * - 非法 -> 打印完整行排查 */
+    private String parseDirection(String raw, int lineNo, String category, String status) {
         if (raw == null || raw.isBlank()) {
             log.warn("第 {} 行方向为空，跳过", lineNo);
             return null;
         }
         String trimmed = raw.trim();
-        if (!VALID_DIRECTIONS.contains(trimmed)) {
-            // 打印完整行供排查（包含所有字段）
-            log.warn("第 {} 行方向无法识别: 【{}】, 完整行: {}", lineNo, trimmed, raw);
+
+        // 正常方向
+        if (VALID_DIRECTIONS.contains(trimmed)) {
+            return trimmed;
+        }
+
+        // 不计收支的特殊处理
+        if ("不计收支".equals(trimmed)) {
+            // 退款 -> 视为收入
+            if ("退款".equals(category)) {
+                log.info("第 {} 行【不计收支-退款】转为收入, category={}", lineNo, category);
+                return "收入";
+            }
+            // 交易关闭 -> 跳过
+            if ("交易关闭".equals(status)) {
+                log.info("第 {} 行【不计收支-交易关闭】跳过, status={}", lineNo, status);
+                return null;
+            }
+            // 信用借还 -> 跳过
+            if ("信用借还".equals(category)) {
+                log.info("第 {} 行【不计收支-信用借还】跳过, category={}", lineNo, category);
+                return null;
+            }
+            // 其他不计收支情况，打印详情待排查
+            log.warn("第 {} 行【不计收支】未识别处理逻辑, category={}, status={}, 完整行: {}",
+                    lineNo, category, status, raw);
             return null;
         }
-        return trimmed;
+
+        // 非法方向，打印完整行排查
+        log.warn("第 {} 行方向无法识别: 【{}】, category={}, status={}, 完整行: {}",
+                lineNo, trimmed, category, status, raw);
+        return null;
     }
 
     /** 外部 ID 规范化：去除 Tab 等空白，空白返回 null */
