@@ -123,7 +123,7 @@ public class IngestionAppService {
         // 7. 持久化（@Transactional 类级回滚保护）
         transactionRepository.saveBatch(deduped);
 
-        // 8. 发布领域事件并清空（事件在 save 前注册，transactionId 为 null 属已知缺口，待 Day6+ 监听器）
+        // 8. 发布领域事件并清空（saveBatch 已回填 id 并丰富事件，transactionId 为真实主键）
         for (Transaction tx : deduped) {
             for (Object event : tx.getDomainEvents()) {
                 eventPublisher.publishEvent(event);

@@ -62,6 +62,9 @@ class IngestionEndToEndTest {
     @Autowired
     private DataSource dataSource;
 
+    @org.springframework.boot.test.mock.mockito.SpyBean
+    private com.finhub.fundflow.application.event.TransactionEventListener eventListener;
+
     @BeforeAll
     void probeDatabase() throws Exception {
         boolean reachable;
@@ -141,6 +144,28 @@ class IngestionEndToEndTest {
                         throw new AssertionError("期望 imported 或 skipped > 0，实际 imported=" + imported + " skipped=" + skipped);
                     }
                 });
+    }
+
+    @Test
+    @DisplayName("端到端导入后监听器应收到带非 null transactionId 的分类事件（id 回填 + 事件丰富化闭环）")
+    void shouldPublishClassifiedEventWithRealTransactionId() throws Exception {
+        String nano = String.valueOf(System.nanoTime());
+        String extId = "E2EEVT" + nano;
+        String csv = alipayCsv(
+                "2024-01-15 12:30:45,餐饮美食,美团外卖,test@example.com,午餐,支出,17.10,招商银行,交易成功," + extId + "\t,商户订单001\t,,");
+
+        MockMultipartFile file = new MockMultipartFile("file", "alipay_evt.csv", "text/csv", csv.getBytes());
+        mockMvc.perform(multipart("/api/transactions/import").file(file).with(httpBasic(USERNAME, PASSWORD)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.imported").value(1));
+
+        // 监听器应收到分类事件，且 transactionId 非空（id 已被 saveBatch 回填并丰富进事件）
+        org.mockito.ArgumentCaptor<com.finhub.fundflow.domain.event.TransactionClassifiedEvent> captor =
+                org.mockito.ArgumentCaptor.forClass(com.finhub.fundflow.domain.event.TransactionClassifiedEvent.class);
+        org.mockito.Mockito.verify(eventListener).onClassified(captor.capture());
+        assertThat(captor.getValue().transactionId()).isNotNull();
+        assertThat(captor.getValue().transactionId()).isPositive();
+        assertThat(captor.getValue().category()).isEqualTo(com.finhub.fundflow.domain.vo.Category.FOOD);
     }
 
     // =========================================================================
