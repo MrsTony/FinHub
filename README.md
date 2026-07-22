@@ -209,12 +209,21 @@ graph TB
 - [x] **第六步**：`IngestionController`（`POST /api/transactions/import`）+ `GlobalExceptionHandler`（IAE->400 / 其他->500）+ Knife4j 注解；`@SpringBootTest`+MockMvc 测试覆盖 200/400/401/500
 - [x] **第七步**：`IngestionEndToEndTest` 端到端 -- 合成 CSV（运行期唯一 externalId）+ 真实支付宝账单全链路，验证路由/编排/加解密/分类/去重/落库/查回闭环；`mvn test` 221 全绿
 
-**已知缺口（待 Day6+）**：聚合根 id 不回填（事件 transactionId 为 null）、`anomaly_reason_code` 列未建（Converter 用哨兵占位）、领域事件监听器未实现。
+**已知缺口（Day6 已解除 id 回填 + 事件监听器）**：`anomaly_reason_code` 列未建（Converter 用哨兵占位）-- 余下见 Day 6。
+
+### Day 6 - 领域事件闭环（id 回填 + 监听器消费）✅
+> 主题：解除 Day5 遗留的领域事件缺口——事件在 save 后携带真实自增主键 transactionId，并被同步日志监听器消费。
+> 参考 `docs/superpowers/specs/day06.md`，最终 238 个测试全绿（Day5 基线 229 + Day6 新增 9）。
+
+- [x] **第一步**：`Transaction.assignPersistedId(Long)` —— 聚合内回填 id + 丰富待发事件（事件为不可变 record，用「同字段 + 新 id」重建实例替换）；重复赋值抛 IllegalStateException、null 抛 NPE
+- [x] **第二步**：`TransactionRepositoryImpl.save/saveBatch` —— insert 后调 `assignPersistedId(po.getId())` 回填聚合根 id（MyBatis-Plus insert 后 po.getId() 即自增主键）
+- [x] **第三步**：`TransactionEventListener`（`com.finhub.fundflow.application.event`，`@EventListener`）—— 分类事件 `log.info`、异常事件 `log.warn` 消费；同步发布即消费
+- [x] **第四步**：`IngestionAppService` step 8 注释更新 + `IngestionEndToEndTest` E2E 断言（`@SpyBean` + ArgumentCaptor 验证导入后监听器收到带非 null transactionId 的分类事件）
+
+**事件闭环实证**：
+- E2E 导入后监听器日志：`交易分类完成: transactionId=2153, category=FOOD, source=RULE`（真实非空主键）
+- 异常事件监听器日志：`异常交易标记: transactionId=200, score=0.9, reasonCode=AMOUNT_SPIKE`
+
+**已知缺口（待 Day7+）**：`anomaly_reason_code` 列未建（Converter 用哨兵占位）、通知语义（`@TransactionalEventListener(AFTER_COMMIT)`）待 Day7+。
 
 ### Knife4j 集成 + 环境隔离 + 启动 Banner
-- 引入 Knife4j 4.5.0（基于 springdoc 2.5.0 增强，`/doc.html` 文档 UI）
-- profile `prod` 双重隔离：`application-prod.yml` 禁用 Knife4j/springdoc + Security 层 prod 不放行文档路径（未认证 `/doc.html` 返回 401；`/v3/api-docs` springdoc 禁用返回 404，文档数据不泄露）
-- 非 prod 文档页与 `/api/**` 均 permitAll，Knife4j 免密调试（prod 仍 Basic Auth 鉴权）
-- `OpenApiConfig`（`@Profile("!prod")`）提供 BasicAuth securityScheme
-- `StartupBanner`（`ApplicationRunner`）启动打印本地+局域网 doc.html 链接 + 免密标识，prod 仅一行
-- 新增 9 个测试（Knife4jDevAccessTest 2 + Knife4jProdDisableTest 2 + OpenApiConfigTest 1 + StartupBannerTest 4），`mvn test` 共 229 全绿
