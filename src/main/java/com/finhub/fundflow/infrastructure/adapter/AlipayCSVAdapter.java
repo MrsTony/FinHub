@@ -196,9 +196,14 @@ public class AlipayCSVAdapter implements DataSourceAdapter {
 
     /** 校验方向：仅保留合法值（收入/支出/IN/OUT），非法返回 null */
     private String parseDirection(String raw, int lineNo) {
+        if (raw == null || raw.isBlank()) {
+            log.warn("第 {} 行方向为空，跳过", lineNo);
+            return null;
+        }
         String trimmed = raw.trim();
         if (!VALID_DIRECTIONS.contains(trimmed)) {
-            log.warn("第 {} 行方向无法识别: {}", lineNo, raw);
+            // 打印完整行供排查（包含所有字段）
+            log.warn("第 {} 行方向无法识别: 【{}】, 完整行: {}", lineNo, trimmed, raw);
             return null;
         }
         return trimmed;
