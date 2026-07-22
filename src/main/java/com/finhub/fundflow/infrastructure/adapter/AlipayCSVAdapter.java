@@ -217,19 +217,22 @@ public class AlipayCSVAdapter implements DataSourceAdapter {
 
         // 不计收支的特殊处理
         if ("不计收支".equals(trimmed)) {
-            // 退款 -> 视为收入
-            if ("退款".equals(category)) {
-                log.info("第 {} 行【不计收支-退款】转为收入, category={}", lineNo, category);
+            // 交易状态为"退款成功" -> 视为收入（不管原分类是什么）
+            if ("退款成功".equals(status)) {
+                log.info("第 {} 行【不计收支-退款成功】转为收入, category={}, status={}",
+                        lineNo, category, status);
                 return "收入";
             }
             // 交易关闭 -> 跳过
             if ("交易关闭".equals(status)) {
-                log.info("第 {} 行【不计收支-交易关闭】跳过, status={}", lineNo, status);
+                log.info("第 {} 行【不计收支-交易关闭】跳过, category={}, status={}",
+                        lineNo, category, status);
                 return null;
             }
             // 信用借还 -> 跳过
             if ("信用借还".equals(category)) {
-                log.info("第 {} 行【不计收支-信用借还】跳过, category={}", lineNo, category);
+                log.info("第 {} 行【不计收支-信用借还】跳过, category={}, status={}",
+                        lineNo, category, status);
                 return null;
             }
             // 其他不计收支情况，打印详情待排查

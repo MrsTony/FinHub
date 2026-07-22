@@ -32,7 +32,7 @@ public class RealBillingFileIntegrationTest {
     private final DataSourceAdapter wechatAdapter = new WechatCSVAdapter();
 
     @Test
-    @DisplayName("真实支付宝账单应解析为 95 笔（89 笔支出 + 6 笔退款转收入，不计收支 17 笔被跳过）")
+    @DisplayName("真实支付宝账单应解析为 109 笔（89 笔支出 + 20 笔退款成功转收入，交易关闭 1 + 信用借还 2 跳过）")
     void shouldParseRealAlipayCsv() throws Exception {
         Path path = Paths.get(ALIPAY_REAL_CSV);
         assumeTrue(Files.exists(path), "真实支付宝账单文件不存在，跳过");
@@ -44,9 +44,9 @@ public class RealBillingFileIntegrationTest {
             System.out.println("解析记录数: " + records.size());
             records.stream().limit(3).forEach(this::printRecord);
 
-            // 文件声明"共112笔记录"：89笔支出 + 6笔退款(转收入) + 17笔不计收支(跳过)
-            assertThat(records).hasSize(95);
-            // 支出 + 退款转收入
+            // 文件声明"共112笔记录"：89笔支出 + 20笔退款成功(转收入) + 1笔交易关闭(跳过) + 2笔信用借还(跳过)
+            assertThat(records).hasSize(109);
+            // 支出 + 退款成功转收入
             assertThat(records).allMatch(r -> "支出".equals(r.direction()) || "收入".equals(r.direction()));
             assertThat(records).allMatch(r -> "ALIPAY".equals(r.sourceSystem()));
         }
