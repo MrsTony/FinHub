@@ -92,7 +92,7 @@ public class TransactionClassifierImpl implements TransactionClassifier {
         if (matchedCategory != null) {
             // 2a. 方向兼容性校验
             Category validatedCategory = validateDirection(matchedCategory, transaction.getDirection());
-            log.info("商户: {}, 匹配分类: {}, 最终分类: {}", counterparty, matchedCategory.getDisplayName(),
+            log.debug("商户: {}, 匹配分类: {}, 最终分类: {}", counterparty, matchedCategory.getDisplayName(),
                     validatedCategory.getDisplayName());
             return new CategorySuggestion(validatedCategory,
                     validatedCategory == Category.UNCLASSIFIED ? CONFIDENCE_RULE_MISS : CONFIDENCE_RULE_HIT,
@@ -105,7 +105,7 @@ public class TransactionClassifierImpl implements TransactionClassifier {
             return aiEngine.suggest(transaction);
         }
 
-        log.info("商户: {}, 未匹配分类", counterparty);
+        log.debug("商户: {}, 未匹配分类", counterparty);
         return new CategorySuggestion(Category.UNCLASSIFIED, CONFIDENCE_RULE_MISS, SOURCE_RULE);
     }
 

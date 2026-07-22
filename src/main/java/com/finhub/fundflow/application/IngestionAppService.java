@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -98,17 +99,36 @@ public class IngestionAppService {
         List<Transaction> deduped = deduplicationService.deduplicate(candidates);
 
         // 5. 分类建议：可采纳则 markClassified
+        int classifiedCount = 0;
+        Map<String, Integer> unclassifiedMerchants = new HashMap<>();
         for (Transaction tx : deduped) {
             try {
                 CategorySuggestion suggestion = transactionClassifier.classify(tx);
                 if (suggestion != null && suggestion.isAdoptable()) {
                     tx.markClassified(suggestion.category(), suggestion.source());
+                    classifiedCount++;
+                } else {
+                    // 未匹配：解密商户名 + 方向，聚合统计供分析（扩充关键词表/排查方向不兼容）
+                    String merchant = tx.getCounterparty().decrypt(encryptionKey);
+                    String key = merchant + " | " + tx.getDirection();
+                    unclassifiedMerchants.merge(key, 1, Integer::sum);
                 }
             } catch (Exception e) {
                 // 分类失败不阻断，保持 UNCLASSIFIED
                 log.warn("分类失败，保持 UNCLASSIFIED: externalId={}, reason={}",
                         tx.getExternalId(), e.getMessage());
             }
+        }
+
+        // 分类聚合统计：便于分析未匹配商户（扩充关键词表或排查方向不兼容）
+        int unclassifiedTotal = deduped.size() - classifiedCount;
+        log.info("分类统计: 总数={}, 已分类={}, 未匹配={}", deduped.size(), classifiedCount, unclassifiedTotal);
+        if (!unclassifiedMerchants.isEmpty()) {
+            log.info("未匹配商户 Top 20（商户 | 方向 -> 笔数）:");
+            unclassifiedMerchants.entrySet().stream()
+                    .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                    .limit(20)
+                    .forEach(e -> log.info("  {} -> {} 笔", e.getKey(), e.getValue()));
         }
 
         // 6. 异常检测：命中则 markAnomaly
