@@ -199,7 +199,7 @@ public class AlipayCSVAdapter implements DataSourceAdapter {
     /** 校验方向：
      * - 收入/支出/IN/OUT -> 正常返回
      * - 不计收支 -> 根据交易分类/交易状态判断：
-     *   - 退款 -> 收入(IN)
+     *   - 退款成功 -> 资金流入(IN)，冲减原支出（非收入；分类由分类器保留原消费类）
      *   - 交易关闭 -> 跳过(null)
      *   - 信用借还 -> 跳过(null)
      * - 非法 -> 打印完整行排查 */
@@ -219,7 +219,7 @@ public class AlipayCSVAdapter implements DataSourceAdapter {
         if ("不计收支".equals(trimmed)) {
             // 交易状态为"退款成功" -> 视为收入（不管原分类是什么）
             if ("退款成功".equals(status)) {
-                log.info("第 {} 行【不计收支-退款成功】转为收入, category={}, status={}",
+                log.info("第 {} 行【不计收支-退款成功】转为资金流入(IN), 冲减原支出, category={}, status={}",
                         lineNo, category, status);
                 return "收入";
             }
