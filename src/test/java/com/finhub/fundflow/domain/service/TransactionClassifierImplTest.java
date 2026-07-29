@@ -24,6 +24,10 @@ public class TransactionClassifierImplTest {
     }
 
     private Transaction createTx(String counterparty, Direction direction) {
+        return createTx(counterparty, "测试", direction);
+    }
+
+    private Transaction createTx(String counterparty, String remark, Direction direction) {
         return Transaction.createFrom(
                 "ext-001",
                 money("100.00"),
@@ -31,7 +35,7 @@ public class TransactionClassifierImplTest {
                 Category.UNCLASSIFIED,
                 LocalDateTime.now(),
                 encrypted(counterparty),
-                encrypted("测试"),
+                encrypted(remark),
                 new Fingerprint("abc", "salt"),
                 "ALIPAY"
         );
@@ -74,5 +78,82 @@ public class TransactionClassifierImplTest {
         CategorySuggestion suggestion = classifier.classify(tx);
 
         assertThat(suggestion.category()).isEqualTo(Category.UNCLASSIFIED);
+    }
+
+    @Test
+    @DisplayName("哈啰出行应分类为 TRANSPORT")
+    void shouldClassifyHelloBikeAsTransport() {
+        Transaction tx = createTx("哈啰出行", Direction.OUT);
+        assertThat(classifier.classify(tx).category()).isEqualTo(Category.TRANSPORT);
+    }
+
+    @Test
+    @DisplayName("铁路12306 应分类为 TRANSPORT")
+    void shouldClassify12306AsTransport() {
+        Transaction tx = createTx("铁路12306", Direction.OUT);
+        assertThat(classifier.classify(tx).category()).isEqualTo(Category.TRANSPORT);
+    }
+
+    @Test
+    @DisplayName("铁路12306 退款(IN)应保留 TRANSPORT 分类（退款不降级为 UNCLASSIFIED）")
+    void shouldKeepTransportFor12306Refund() {
+        CategorySuggestion suggestion = classifier.classify(createTx("铁路12306", Direction.IN));
+        assertThat(suggestion.category()).isEqualTo(Category.TRANSPORT);
+        assertThat(suggestion.confidence()).isEqualByComparingTo(new BigDecimal("1.0"));
+    }
+
+    @Test
+    @DisplayName("蜜雪冰城应分类为 FOOD")
+    void shouldClassifyMixueAsFood() {
+        assertThat(classifier.classify(createTx("蜜雪冰城", Direction.OUT)).category()).isEqualTo(Category.FOOD);
+    }
+
+    @Test
+    @DisplayName("众安保险应分类为 INSURANCE")
+    void shouldClassifyZhongAnAsInsurance() {
+        assertThat(classifier.classify(createTx("众安在线财产保险股份有限公司", Direction.OUT)).category())
+                .isEqualTo(Category.INSURANCE);
+    }
+
+    @Test
+    @DisplayName("众安保险退款(IN)应保留 INSURANCE 分类")
+    void shouldKeepInsuranceForRefund() {
+        assertThat(classifier.classify(createTx("众安保险", Direction.IN)).category())
+                .isEqualTo(Category.INSURANCE);
+    }
+
+    @Test
+    @DisplayName("金山WPS应分类为 SUBSCRIPTION")
+    void shouldClassifyWpsAsSubscription() {
+        assertThat(classifier.classify(createTx("金山WPS", Direction.OUT)).category())
+                .isEqualTo(Category.SUBSCRIPTION);
+    }
+
+    @Test
+    @DisplayName("燃气集团应分类为 HOUSING")
+    void shouldClassifyGasAsHousing() {
+        assertThat(classifier.classify(createTx("北京市燃气集团有限责任公司", Direction.OUT)).category())
+                .isEqualTo(Category.HOUSING);
+    }
+
+    @Test
+    @DisplayName("大药房应分类为 MEDICAL")
+    void shouldClassifyPharmacyAsMedical() {
+        assertThat(classifier.classify(createTx("北京高济百康大药房有限公司将台路分店", Direction.OUT)).category())
+                .isEqualTo(Category.MEDICAL);
+    }
+
+    @Test
+    @DisplayName("盒马应分类为 SHOPPING")
+    void shouldClassifyHemaAsShopping() {
+        assertThat(classifier.classify(createTx("上海盒马网络科技有限公司", Direction.OUT)).category())
+                .isEqualTo(Category.SHOPPING);
+    }
+
+    @Test
+    @DisplayName("商户名未命中时备注含关键词应命中分类")
+    void shouldClassifyByRemarkWhenCounterpartyMisses() {
+        CategorySuggestion suggestion = classifier.classify(createTx("某未知商户", "美团外卖订单", Direction.OUT));
+        assertThat(suggestion.category()).isEqualTo(Category.FOOD);
     }
 }

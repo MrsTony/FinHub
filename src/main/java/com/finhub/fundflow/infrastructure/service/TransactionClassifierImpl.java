@@ -13,13 +13,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
  * TransactionClassifier 实现：规则引擎 + AI 兜底。
  *
- * <p>分类优先级：商户关键词规则匹配 → AI 建议（预留）</p>
+ * <p>分类优先级：商户关键词规则匹配 -> AI 建议（预留）</p>
  */
 @Slf4j
 @Service
@@ -43,20 +43,66 @@ public class TransactionClassifierImpl implements TransactionClassifier {
     /** AI 建议引擎（MVP 阶段为 null，预留扩展） */
     private final CategorySuggestionEngine aiEngine;
 
-    /** 商户关键词 → 分类映射 */
-    private static final Map<String, Category> MERCHANT_KEYWORDS = new HashMap<>();
+    /** 商户关键词 -> 分类映射（LinkedHashMap 保序，匹配结果可预测） */
+    private static final Map<String, Category> MERCHANT_KEYWORDS = new LinkedHashMap<>();
 
     static {
+        // 餐饮
         MERCHANT_KEYWORDS.put("美团", Category.FOOD);
         MERCHANT_KEYWORDS.put("饿了么", Category.FOOD);
         MERCHANT_KEYWORDS.put("大众点评", Category.FOOD);
+        MERCHANT_KEYWORDS.put("餐饮", Category.FOOD);
+        MERCHANT_KEYWORDS.put("咖啡", Category.FOOD);
+        MERCHANT_KEYWORDS.put("coffee", Category.FOOD);
+        MERCHANT_KEYWORDS.put("蜜雪", Category.FOOD);
+        MERCHANT_KEYWORDS.put("茶姬", Category.FOOD);
+        MERCHANT_KEYWORDS.put("羊汤", Category.FOOD);
+        MERCHANT_KEYWORDS.put("食间", Category.FOOD);
+        MERCHANT_KEYWORDS.put("拉面", Category.FOOD);
+        MERCHANT_KEYWORDS.put("面馆", Category.FOOD);
+        MERCHANT_KEYWORDS.put("醉面", Category.FOOD);
+        // 交通
         MERCHANT_KEYWORDS.put("滴滴", Category.TRANSPORT);
         MERCHANT_KEYWORDS.put("高德", Category.TRANSPORT);
         MERCHANT_KEYWORDS.put("曹操", Category.TRANSPORT);
+        MERCHANT_KEYWORDS.put("哈啰", Category.TRANSPORT);
+        MERCHANT_KEYWORDS.put("12306", Category.TRANSPORT);
+        MERCHANT_KEYWORDS.put("铁路", Category.TRANSPORT);
+        MERCHANT_KEYWORDS.put("轨道", Category.TRANSPORT);
+        MERCHANT_KEYWORDS.put("公交", Category.TRANSPORT);
+        MERCHANT_KEYWORDS.put("地铁", Category.TRANSPORT);
+        // 购物
         MERCHANT_KEYWORDS.put("淘宝", Category.SHOPPING);
         MERCHANT_KEYWORDS.put("京东", Category.SHOPPING);
         MERCHANT_KEYWORDS.put("拼多多", Category.SHOPPING);
         MERCHANT_KEYWORDS.put("天猫", Category.SHOPPING);
+        MERCHANT_KEYWORDS.put("便利蜂", Category.SHOPPING);
+        MERCHANT_KEYWORDS.put("盒马", Category.SHOPPING);
+        MERCHANT_KEYWORDS.put("抖音", Category.SHOPPING);
+        MERCHANT_KEYWORDS.put("电商", Category.SHOPPING);
+        // 住房
+        MERCHANT_KEYWORDS.put("燃气", Category.HOUSING);
+        MERCHANT_KEYWORDS.put("物业", Category.HOUSING);
+        MERCHANT_KEYWORDS.put("房租", Category.HOUSING);
+        // 医疗
+        MERCHANT_KEYWORDS.put("药房", Category.MEDICAL);
+        MERCHANT_KEYWORDS.put("药店", Category.MEDICAL);
+        MERCHANT_KEYWORDS.put("医院", Category.MEDICAL);
+        // 订阅/数字服务（AI 服务、话费、软件/视频会员）
+        MERCHANT_KEYWORDS.put("WPS", Category.SUBSCRIPTION);
+        MERCHANT_KEYWORDS.put("网盘", Category.SUBSCRIPTION);
+        MERCHANT_KEYWORDS.put("爱奇艺", Category.SUBSCRIPTION);
+        MERCHANT_KEYWORDS.put("联通", Category.SUBSCRIPTION);
+        MERCHANT_KEYWORDS.put("移动", Category.SUBSCRIPTION);
+        MERCHANT_KEYWORDS.put("电信", Category.SUBSCRIPTION);
+        MERCHANT_KEYWORDS.put("话费", Category.SUBSCRIPTION);
+        MERCHANT_KEYWORDS.put("深度求索", Category.SUBSCRIPTION);
+        MERCHANT_KEYWORDS.put("月之暗面", Category.SUBSCRIPTION);
+        // 保险
+        MERCHANT_KEYWORDS.put("保险", Category.INSURANCE);
+        MERCHANT_KEYWORDS.put("众安", Category.INSURANCE);
+        MERCHANT_KEYWORDS.put("平安", Category.INSURANCE);
+        // 收入
         MERCHANT_KEYWORDS.put("支付宝", Category.INCOME);
         MERCHANT_KEYWORDS.put("工资", Category.INCOME);
         MERCHANT_KEYWORDS.put("奖金", Category.INCOME);
@@ -81,16 +127,17 @@ public class TransactionClassifierImpl implements TransactionClassifier {
 
     @Override
     public CategorySuggestion classify(Transaction transaction) {
-        // 1. 解密对方户名
-        String counterparty = decryptCounterparty(transaction.getCounterparty());
+        // 1. 解密对方户名 + 备注（备注含商品说明，是分类的辅助信号）
+        String counterparty = decrypt(transaction.getCounterparty());
+        String remark = decrypt(transaction.getRemark());
 
         log.debug("分类商户: {}", counterparty);
 
-        // 2. 规则引擎：关键词匹配
-        Category matchedCategory = matchKeyword(counterparty);
+        // 2. 规则引擎：商户名优先匹配，未命中再查备注
+        Category matchedCategory = matchKeyword(counterparty, remark);
 
         if (matchedCategory != null) {
-            // 2a. 方向兼容性校验
+            // 2a. 方向兼容性校验（委托 Category 值对象）
             Category validatedCategory = validateDirection(matchedCategory, transaction.getDirection());
             log.debug("商户: {}, 匹配分类: {}, 最终分类: {}", counterparty, matchedCategory.getDisplayName(),
                     validatedCategory.getDisplayName());
@@ -110,20 +157,32 @@ public class TransactionClassifierImpl implements TransactionClassifier {
     }
 
     /**
-     * 解密对方户名。
+     * 解密 EncryptedString 字段，null 安全返回空串。
      */
-    private String decryptCounterparty(EncryptedString counterparty) {
-        return counterparty.decrypt(encryptionKey);
+    private String decrypt(EncryptedString field) {
+        return field == null ? "" : field.decrypt(encryptionKey);
     }
 
     /**
-     * 商户关键词匹配（contains 语义）。
+     * 商户关键词匹配（contains 语义）。商户名优先，未命中再查备注（商品说明兜底）。
      *
      * @return 匹配的类别，未命中返回 null
      */
-    private Category matchKeyword(String counterparty) {
+    private Category matchKeyword(String counterparty, String remark) {
+        Category hit = matchIn(counterparty);
+        if (hit != null) {
+            return hit;
+        }
+        return matchIn(remark);
+    }
+
+    /** 单文本关键词匹配 */
+    private Category matchIn(String text) {
+        if (text == null || text.isEmpty()) {
+            return null;
+        }
         for (Map.Entry<String, Category> entry : MERCHANT_KEYWORDS.entrySet()) {
-            if (counterparty.contains(entry.getKey())) {
+            if (text.contains(entry.getKey())) {
                 return entry.getValue();
             }
         }
@@ -131,15 +190,15 @@ public class TransactionClassifierImpl implements TransactionClassifier {
     }
 
     /**
-     * 方向兼容性校验：
-     * INCOME 类别必须 Direction 为 IN，支出类别必须 Direction 为 OUT。
-     * 不兼容时返回 UNCLASSIFIED。
+     * 方向兼容性校验：委托 Category 值对象的方向兼容性方法。
+     * INCOME 仅允许 IN；支出类允许 OUT(消费) 与 IN(退款保留原分类)；TRANSFER 双向。
+     * 不兼容时返回 UNCLASSIFIED（如 INCOME 遇 OUT）。
      */
     private Category validateDirection(Category category, Direction direction) {
-        if (category == Category.INCOME && direction != Direction.IN) {
+        if (direction == Direction.IN && !category.isIncomeCompatible()) {
             return Category.UNCLASSIFIED;
         }
-        if (category != Category.INCOME && direction != Direction.OUT) {
+        if (direction == Direction.OUT && !category.isExpenseCompatible()) {
             return Category.UNCLASSIFIED;
         }
         return category;

@@ -17,8 +17,8 @@ public class CategoryTest {
     }
 
     @Test
-    @DisplayName("支出类别应仅与 OUT 方向兼容")
-    void shouldBeExpenseCompatibleOnlyForExpenseCategories() {
+    @DisplayName("支出类别应与 OUT(消费) 和 IN(退款) 方向均兼容")
+    void shouldBeCompatibleWithBothDirectionsForExpenseCategories() {
         assertThat(Category.FOOD.isExpenseCompatible()).isTrue();
         assertThat(Category.TRANSPORT.isExpenseCompatible()).isTrue();
         assertThat(Category.SHOPPING.isExpenseCompatible()).isTrue();
@@ -28,9 +28,10 @@ public class CategoryTest {
         assertThat(Category.ENTERTAINMENT.isExpenseCompatible()).isTrue();
         assertThat(Category.SUBSCRIPTION.isExpenseCompatible()).isTrue();
 
-        assertThat(Category.FOOD.isIncomeCompatible()).isFalse();
-        assertThat(Category.TRANSPORT.isIncomeCompatible()).isFalse();
-        assertThat(Category.SHOPPING.isIncomeCompatible()).isFalse();
+        // 支出类允许 IN 方向（退款保留原消费分类）
+        assertThat(Category.FOOD.isIncomeCompatible()).isTrue();
+        assertThat(Category.TRANSPORT.isIncomeCompatible()).isTrue();
+        assertThat(Category.SHOPPING.isIncomeCompatible()).isTrue();
     }
 
     @Test
@@ -41,10 +42,10 @@ public class CategoryTest {
     }
 
     @ParameterizedTest
-    @DisplayName("所有支出类别应拒绝 IN 方向")
+    @DisplayName("所有支出类别应允许 IN 方向（退款保留原消费分类）")
     @EnumSource(names = {"FOOD", "TRANSPORT", "SHOPPING", "HOUSING", "MEDICAL", "EDUCATION", "ENTERTAINMENT", "SUBSCRIPTION"})
-    void shouldRejectIncomeDirectionForExpenseCategories(Category expenseCategory) {
-        assertThat(expenseCategory.isIncomeCompatible()).isFalse();
+    void shouldAllowIncomeDirectionForExpenseCategories(Category expenseCategory) {
+        assertThat(expenseCategory.isIncomeCompatible()).isTrue();
     }
 
     @ParameterizedTest
@@ -53,5 +54,19 @@ public class CategoryTest {
     void shouldBeCompatibleWithAtLeastOneDirection(Category category) {
         boolean compatibleWithAny = category.isIncomeCompatible() || category.isExpenseCompatible();
         assertThat(compatibleWithAny).isTrue();
+    }
+
+    @Test
+    @DisplayName("TRANSFER 和 INSURANCE 应存在且与 IN/OUT 双向兼容（转账/保险退款）")
+    void shouldExistAndBeBidirectionalForTransferAndInsurance() {
+        // TRANSFER：转账双向（转出 OUT / 转入或退回 IN）
+        Category transfer = Category.valueOf("TRANSFER");
+        assertThat(transfer.isIncomeCompatible()).isTrue();
+        assertThat(transfer.isExpenseCompatible()).isTrue();
+
+        // INSURANCE：保险支出 OUT，退款 IN 保留原分类
+        Category insurance = Category.valueOf("INSURANCE");
+        assertThat(insurance.isIncomeCompatible()).isTrue();
+        assertThat(insurance.isExpenseCompatible()).isTrue();
     }
 }
