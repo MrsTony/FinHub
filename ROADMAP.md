@@ -9,8 +9,8 @@
 ## 当前阶段
 
 - **Day 6（领域事件闭环）已完成**。截至 2026-07-29 实跑 `mvn test`：252 个测试全绿（Day6 基线 238 + 自驱深化新增 14）。
-- Day 6 之后转入**自驱深化阶段**：导入分类质量打磨 + 基础设施补强（Knife4j / Actuator / dev 免密）。
-- **Day 7（数据治理 + CI/DI）尚未开始**（`docs/superpowers/specs/` 下无 day07 规划文件）。
+- Day 6 之后转入**自驱深化阶段**：导入分类质量打磨 + 基础设施补强（Knife4j / Actuator / dev 免密 / JaCoCo）。
+- **Day 7（数据治理 + CI/DI）进行中**：设计 + 执行计划已建（`docs/superpowers/specs/day07.md` + `docs/superpowers/plans/2026-07-30-day07-data-governance-ci.md`），范围 = DVC 版本化 + Golden Set 骨架 + GitHub Actions CI + PromptRegistry 落地。三项决策已拍板：数据治理为主、DVC 本地 remote、Golden Set 先跑规则层。
 - 基线 commit：`3ad9e66`（main 分支）；其上已提交 JaCoCo 覆盖率插件 + 日志 UTF-8 字符集（`pom.xml` / `application.yml`）+ 配套 `jacoco-report` skill（`.claude/skills/`），工作区 clean。
 
 ---
@@ -26,7 +26,7 @@
 | Day 4 | 领域服务实现 + CSV 适配器 | ✅ 已完成 |
 | Day 5 | 端到端导入流水线闭环 | ✅ 已完成（221 测试） |
 | Day 6 | 领域事件闭环（id 回填 + 监听器） | ✅ 已完成（238 测试） |
-| Day 7 | 数据治理 + CI/DI（DVC / Golden Set / GitHub Actions / PromptRegistry） | ⏳ 未开始 |
+| Day 7 | 数据治理 + CI/DI（DVC / Golden Set / GitHub Actions / PromptRegistry） | 🟡 进行中（设计 + 计划已建） |
 | Day 8 | 安全加固 + 容器化收尾 | 🟡 部分完成 |
 | Day 9 | 整合测试 + BENCHMARK + 演示视频 | ⏳ 未开始 |
 
@@ -108,12 +108,16 @@
 
 ## 待办
 
-### Day 7 - 数据治理 + CI/DI（未开始）
-- [ ] DVC 配置（管理 `prompts/`、`golden-set/`）
-- [ ] Golden Set：20 条真实查询 + 错误模式 → Eval 用例
-- [ ] GitHub Actions CI（编译 + 单元测试 + 打包镜像）
-- [ ] DVC DI Pipeline（Golden Set 通过率）
-- [ ] `PromptRegistry` 落地，禁止硬编码 Prompt
+### Day 7 - 数据治理 + CI/DI（进行中）
+
+> 设计 + 执行计划：`docs/superpowers/specs/day07.md` + `docs/superpowers/plans/2026-07-30-day07-data-governance-ci.md`。决策：数据治理为主（查询/MCP 顺延 Day8+）、DVC 本地 remote、Golden Set 先跑规则层 `TransactionClassifier`（NL 留 TODO）。
+
+- [ ] ADR-007 数据资产版本化（补位行动指南未落地的 ADR-004 DVC 条目）
+- [ ] DVC 初始化 + 本地 remote（`data/dvc-storage`）+ `prompts/`、`golden-set/` 入版本化
+- [ ] `FileSystemPromptRegistry` 实现（从 DVC 目录加载，TDD）
+- [ ] Golden Set：20 条分类评测用例 + 20 条 NL 查询资产 + README 口径
+- [ ] `GoldenSetEvalTest` 规则层通过率 + `dvc.yaml` eval stage（`dvc repro` 可复现）
+- [ ] GitHub Actions CI（编译 + 纯单测 + 镜像构建验证，不连远程库）
 
 ### Day 8 - 安全加固 + 容器化收尾（部分完成）
 - [x] Basic Auth（SecurityConfig profile 感知）
