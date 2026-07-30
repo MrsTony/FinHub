@@ -11,7 +11,7 @@
 - **Day 6（领域事件闭环）已完成**。截至 2026-07-29 实跑 `mvn test`：252 个测试全绿（Day6 基线 238 + 自驱深化新增 14）。
 - Day 6 之后转入**自驱深化阶段**：导入分类质量打磨 + 基础设施补强（Knife4j / Actuator / dev 免密）。
 - **Day 7（数据治理 + CI/DI）尚未开始**（`docs/superpowers/specs/` 下无 day07 规划文件）。
-- 基线 commit：`3ad9e66`（main 分支，工作区 clean）。
+- 基线 commit：`3ad9e66`（main 分支）；其上已提交 JaCoCo 覆盖率插件 + 日志 UTF-8 字符集（`pom.xml` / `application.yml`）+ 配套 `jacoco-report` skill（`.claude/skills/`），工作区 clean。
 
 ---
 
@@ -95,6 +95,15 @@
 
 **验证状态**：已验证。2026-07-29 实跑 `mvn test`，252 全绿（含上述提交新增的 14 个测试）。
 
+### 基础设施 - JaCoCo 覆盖率（已验证 / 已提交）
+
+- 2026-07-29 配 JaCoCo 0.8.12：`prepare-agent`（initialize 阶段注入 `-javaagent`）+ `report`（绑 `verify` 阶段，生成 HTML+XML）
+- surefire `<argLine>@{argLine}</argLine>` 延迟求值：合并 `properties.argLine`（UTF-8 编码参数）与 JaCoCo 注入的 agent
+- `application.yml` 增 `logging.charset.console/file: UTF-8`
+- 配套 `jacoco-report` skill（`.claude/skills/jacoco-report/`，`parse_jacoco.py` + `SKILL.md`），纳入版本控制作项目级 skill
+
+**状态：已验证 / 已提交。** 2026-07-30 实跑 `mvn verify`，252 全绿，`target/site/jacoco/jacoco.xml` + `index.html` 正常生成，覆盖率数据非全 0（LINE 87.8% / BRANCH 59.2% / METHOD 85.6% / CLASS 72.9%），证明 prepare-agent 注入与 surefire `@{argLine}` 继承均生效。`pom.xml` + `application.yml` + `.claude/skills/jacoco-report/` 已提交。覆盖率缺口（domain 94.4% / ai 28.6% / knowledge 3.6% / query 0%）属测试补强范畴，不在本次配置提交范围。
+
 ---
 
 ## 待办
@@ -145,7 +154,8 @@
 | Day 5 | `mvn test` 全量 | 221 全绿（含真实账单 E2E） | `README.md` |
 | Day 6 | `mvn test` 全量 | 238 全绿（Day5 基线 229 + Day6 新增 9） | `README.md` |
 | 2026-07-29 | `mvn test` 全量 | 252 全绿（Failures: 0, Errors: 0, Skipped: 0），耗时 1:48 | 实跑 |
-| 当前基线 | commit / 分支 / 工作区 | `3ad9e66` / main / clean | git |
+| 2026-07-30 | `mvn verify` 全量 | 252 全绿 + JaCoCo 报告生成（LINE 87.8% / BRANCH 59.2%） | 实跑 |
+| 当前基线 | commit / 分支 / 工作区 | JaCoCo 提交后 main / clean（上一基线 `3ad9e66`） | git |
 
 ---
 

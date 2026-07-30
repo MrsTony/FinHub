@@ -31,6 +31,8 @@
         <mybatis-plus.version>3.5.7</mybatis-plus.version>
         <jsqlparser.version>4.9</jsqlparser.version>
         <springdoc.version>2.5.0</springdoc.version>
+        <!-- 测试 fork JVM 编码参数；JaCoCo prepare-agent 会在此前置 -javaagent，surefire 用 @{argLine} 继承 -->
+        <argLine>-Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8</argLine>
     </properties>
 
     <dependencies>
@@ -150,6 +152,31 @@
                         </exclude>
                     </excludes>
                 </configuration>
+            </plugin>
+            <!-- surefire 用 @{argLine} 延迟求值：继承 properties.argLine（编码参数）+ JaCoCo prepare-agent 注入的 -javaagent -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>@{argLine}</argLine>
+                </configuration>
+            </plugin>
+            <!-- JaCoCo 覆盖率：prepare-agent 注入 agent（默认 initialize 阶段），report 生成 HTML+XML（绑 verify） -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.12</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals><goal>prepare-agent</goal></goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals><goal>report</goal></goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

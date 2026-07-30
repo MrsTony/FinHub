@@ -40,3 +40,6 @@ finhub:
 logging:
   level:
     com.finhub: INFO
+  charset:
+    console: UTF-8
+    file: UTF-8
