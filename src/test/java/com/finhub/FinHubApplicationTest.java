@@ -1,6 +1,7 @@
 package com.finhub;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
@@ -24,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>注意：远程 MySQL 不可达时此测试 <b>FAILED 而非跳过</b>（Context 加载阶段即连库）。
  * 本地若库不可达，用 {@code -Dtest=!FinHubApplicationTest} 排除。</p>
  */
+@Tag("integration")
 @SpringBootTest
 class FinHubApplicationTest {
 

@@ -2,6 +2,7 @@ package com.finhub.fundflow.interfaces;
 
 import com.finhub.fundflow.application.IngestionAppService;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -26,6 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *
  * <p>验证：200 上传成功返回计数、400 文件空/文件名空/AppService 抛 IAE、500 意外异常。</p>
  */
+@Tag("integration")
 @SpringBootTest
 @AutoConfigureMockMvc
 class IngestionControllerTest {

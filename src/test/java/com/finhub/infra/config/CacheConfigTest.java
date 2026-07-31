@@ -2,6 +2,7 @@ package com.finhub.infra.config;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>验证去重缓存 Bean 存在、类型正确、且为可用的 Caffeine 实现（put/get 生效）。
  * 缺此 Bean 应用无法启动（{@code DeduplicationServiceImpl} 构造器注入 Cache）。</p>
  */
+@Tag("integration")
 @SpringBootTest
 class CacheConfigTest {
 
