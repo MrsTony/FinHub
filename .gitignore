@@ -28,3 +28,8 @@ data/
 
 # DVC 本地 remote 存储（数据内容不进库）
 data/dvc-storage/
+
+# DVC 管理的数据目录（只提交 .dvc 指针）
+/prompts
+/golden-set
+/golden-set

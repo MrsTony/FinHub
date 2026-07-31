@@ -1,0 +1,6 @@
+stages:
+  eval:
+    cmd: mvn -q test -Dtest=GoldenSetEvalTest
+    deps:
+      - golden-set/classifier-cases.jsonl
+      - src/main/java/com/finhub/fundflow/infrastructure/service/TransactionClassifierImpl.java

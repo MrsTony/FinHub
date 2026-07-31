@@ -1,0 +1,14 @@
+schema: '2.0'
+stages:
+  eval:
+    cmd: mvn -q test -Dtest=GoldenSetEvalTest
+    deps:
+    - path: golden-set/classifier-cases.jsonl
+      hash: md5
+      md5: 35e9f4a7335b2f118eb5718f9390df12
+      size: 1310
+    - path: 
+        src/main/java/com/finhub/fundflow/infrastructure/service/TransactionClassifierImpl.java
+      hash: md5
+      md5: d9fcbf504e08ec246a29f7189a68a3d8
+      size: 8966
