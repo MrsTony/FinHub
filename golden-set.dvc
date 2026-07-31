@@ -1,6 +1,6 @@
 outs:
-- md5: d751713988987e9331980363e24189ce.dir
-  size: 0
-  nfiles: 0
+- md5: 0ebcea7a67825600d05ed9ddfad8db03.dir
+  size: 7477
+  nfiles: 3
   hash: md5
   path: golden-set
