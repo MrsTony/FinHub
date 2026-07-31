@@ -25,3 +25,6 @@ data/
 *.tmp
 /tmp/
 *.stackdump
+
+# DVC 本地 remote 存储（数据内容不进库）
+data/dvc-storage/
